@@ -67,6 +67,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: background .25s ease, color .25s ease;
+  overflow-x: hidden;
 }
 
 /* ================= UST BAR ================= */
@@ -203,6 +204,7 @@ body {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
+  min-width: 0;
   transition: box-shadow .2s ease, opacity .2s ease, transform .18s cubic-bezier(.2,.7,.3,1);
 }
 /* Suruklenen kartin yerinde kalan "kaynak" - soluk placeholder */
@@ -247,6 +249,7 @@ body.dragging-active .link { cursor: grabbing; }
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  min-width: 0;
 }
 .folder-toggle {
   display: grid; place-items: center;
@@ -346,6 +349,7 @@ body.dragging-active .link { cursor: grabbing; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .subfolder-count {
   font-size: 11px;
@@ -374,6 +378,7 @@ body.dragging-active .link { cursor: grabbing; }
   text-decoration: none;
   font-size: 13.5px;
   line-height: 1.2;
+  min-width: 0;
   transition: background .13s ease, color .13s ease, transform .16s cubic-bezier(.2,.7,.3,1), box-shadow .16s ease;
 }
 .link:hover { background: var(--card-hover); color: var(--text); }
@@ -400,7 +405,7 @@ body.dragging-active .link { cursor: grabbing; }
   width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
   object-fit: contain; background: var(--card-hover);
 }
-.link .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 
 /* ================= DIGER YER IMLERI ================= */
 .loose { margin-top: 8px; }
