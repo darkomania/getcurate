@@ -37,6 +37,10 @@ All settings and layout are saved locally and persist across sessions.
 4. Click **Load unpacked** and select the project folder.
 5. Open a new tab — your bookmarks appear.
 
+## Privacy Policy
+
+You can review the full privacy policy here: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
+
 ## Languages
 
 The interface is available in English, Turkish, Spanish, German, French, and Portuguese. On first run it follows your browser language; you can switch it any time from the Language selector in settings.
@@ -103,6 +107,10 @@ Tüm ayarlar ve düzen yerel olarak kaydedilir, sekmeler arası korunur.
 3. Sağ üstten **Geliştirici modu**'nu açın.
 4. **Paketlenmemiş öğe yükle**'ye tıklayıp proje klasörünü seçin.
 5. Yeni sekme açın — yer imleriniz görünür.
+
+## Gizlilik Politikası
+
+Tam gizlilik politikasına buradan ulaşabilirsiniz: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
 ## Diller
 
