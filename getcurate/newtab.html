@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curate</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button id="open-settings" class="icon-btn" data-i18n-attr="aria-label:settings;title:settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="topbar-right">
+      <a class="top-link" href="https://mail.google.com" title="Gmail">Gmail</a>
+      <a class="top-link" href="https://www.google.com/imghp" data-i18n="images" data-i18n-attr="title:images">Images</a>
+      <a class="avatar" id="avatar" href="https://accounts.google.com" data-i18n-attr="title:account_switch;aria-label:account_switch"></a>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="logo-wrap">
+      <img id="google-logo" class="google-logo" alt="" />
+      <span id="text-logo" class="text-logo" hidden></span>
+    </div>
+
+    <section class="search-wrap">
+      <form id="search-form" class="search-bar" autocomplete="off">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+        </svg>
+        <input id="search-input" class="search-input" type="text" placeholder="" autofocus>
+        <button type="button" class="search-mic" data-i18n-attr="aria-label:voice_search;title:voice_search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+    <section id="folders" class="folders"></section>
+
+    <section id="loose" class="loose" hidden>
+      <h2 class="loose-title" data-i18n="other_bookmarks">Other bookmarks</h2>
+      <div id="loose-columns" class="loose-columns"></div>
+    </section>
+
+    <div id="empty" class="empty-state" data-i18n="empty_state" hidden></div>
+  </main>
+
+  <!-- Ayarlar paneli -->
+  <div id="settings-overlay" class="overlay" hidden>
+    <div class="settings-panel" role="dialog" aria-modal="true">
+      <div class="settings-head">
+        <h2 data-i18n="settings">Settings</h2>
+        <button id="close-settings" class="icon-btn" data-i18n-attr="aria-label:close;title:close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="settings-body">
+        <div class="setting">
+          <label class="setting-label" data-i18n="theme">Theme</label>
+          <div class="segmented" id="theme-seg">
+            <button data-theme="system" data-i18n="theme_system">System</button>
+            <button data-theme="green" data-i18n="theme_green">Green</button>
+            <button data-theme="dark" data-i18n="theme_dark">Dark</button>
+            <button data-theme="light" data-i18n="theme_light">Light</button>
+          </div>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" for="lang-select" data-i18n="language">Language</label>
+          <select id="lang-select" class="select"></select>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" for="engine-select" data-i18n="search_engine">Search engine</label>
+          <select id="engine-select" class="select">
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="brave">Brave</option>
+            <option value="ecosia">Ecosia</option>
+          </select>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" for="avatar-letter" data-i18n="avatar_letter">Avatar letter</label>
+          <input type="text" id="avatar-letter" class="text-input" maxlength="2" placeholder="G" autocomplete="off">
+          <p class="hint" data-i18n="avatar_hint"></p>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" for="max-links" data-i18n="max_links_label">Links shown per folder</label>
+          <div class="range-row">
+            <input type="range" id="max-links" min="3" max="30" step="1" class="range-input">
+            <span id="max-links-value" class="range-value">10</span>
+          </div>
+          <p class="hint" data-i18n="max_links_hint"></p>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" data-i18n="google_logo">Brand logo</label>
+          <label class="toggle">
+            <input type="checkbox" id="show-logo" checked>
+            <span data-i18n="show_logo">Show logo</span>
+          </label>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" data-i18n="permanent_mode">Permanent mode</label>
+          <label class="toggle">
+            <input type="checkbox" id="persist-moves">
+            <span data-i18n="permanent_toggle">Make changes permanent</span>
+          </label>
+          <p class="hint" data-i18n="permanent_hint"></p>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" data-i18n="visible_folders">Visible folders</label>
+          <div id="folder-visibility" class="folder-visibility"></div>
+        </div>
+
+        <div class="setting">
+          <label class="setting-label" data-i18n="folder_layout">Folder layout</label>
+          <button id="reset-order" class="ghost-btn" data-i18n="reset_order">Reset order</button>
+          <p class="hint" data-i18n="layout_hint"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Yer imi sag tik menusu -->
+  <div id="context-menu-link" class="context-menu" hidden>
+    <button class="context-item" data-action="open-newtab">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <span data-i18n="open_newtab">Open in new tab</span>
+    </button>
+    <button class="context-item" data-action="open-newwindow">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line></svg>
+      <span data-i18n="open_newwindow">Open in new window</span>
+    </button>
+    <button class="context-item" data-action="open-incognito">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span data-i18n="open_incognito">Open in incognito window</span>
+    </button>
+    <div class="context-sep"></div>
+    <button class="context-item" data-action="copy-link">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      <span data-i18n="copy_link">Copy link</span>
+    </button>
+    <button class="context-item" data-action="edit-link">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>
+      <span data-i18n="edit">Edit</span>
+    </button>
+    <div class="context-sep"></div>
+    <button class="context-item context-delete" data-action="delete">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      <span data-i18n="delete">Delete</span>
+    </button>
+  </div>
+
+  <!-- Klasor sag tik menusu -->
+  <div id="context-menu-folder" class="context-menu" hidden>
+    <button class="context-item" data-action="toggle-folder">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      <span data-toggle-label data-i18n="folder_toggle">Expand/Collapse</span>
+    </button>
+    <button class="context-item" data-action="open-all">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <span data-i18n="open_all">Open all in new tabs</span>
+    </button>
+    <button class="context-item" data-action="open-all-group">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+      <span data-i18n="open_all_group">Open all as a tab group</span>
+    </button>
+    <div class="context-sep"></div>
+    <button class="context-item" data-action="rename-folder">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>
+      <span data-i18n="rename">Rename</span>
+    </button>
+    <button class="context-item" data-action="hide-folder">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+      <span data-i18n="hide">Hide</span>
+    </button>
+    <div class="context-sep"></div>
+    <button class="context-item context-delete" data-action="delete-folder">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      <span data-i18n="delete">Delete</span>
+    </button>
+  </div>
+
+  <!-- Duzenle dialogu -->
+  <div id="edit-overlay" class="overlay" hidden>
+    <div class="edit-panel" role="dialog" aria-modal="true">
+      <div class="settings-head">
+        <h2 id="edit-title" data-i18n="edit">Edit</h2>
+        <button id="edit-close" class="icon-btn" data-i18n-attr="aria-label:close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="edit-body">
+        <label class="setting-label" for="edit-name" data-i18n="name">Name</label>
+        <input type="text" id="edit-name" class="text-input" autocomplete="off">
+        <div id="edit-url-wrap">
+          <label class="setting-label" for="edit-url" style="margin-top:14px" data-i18n="url">URL</label>
+          <input type="text" id="edit-url" class="text-input" autocomplete="off">
+        </div>
+        <div class="edit-actions">
+          <button id="edit-cancel" class="ghost-btn" data-i18n="cancel">Cancel</button>
+          <button id="edit-save" class="primary-btn" data-i18n="save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ilk acilis bilgilendirmesi -->
+  <div id="welcome-overlay" class="overlay" hidden>
+    <div class="welcome-panel" role="dialog" aria-modal="true">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        </svg>
+      </div>
+      <h2 data-i18n="welcome_title">Welcome to Curate</h2>
+      <p data-i18n="welcome_intro"></p>
+      <ul class="welcome-list">
+        <li id="welcome-1"></li>
+        <li id="welcome-2"></li>
+        <li id="welcome-3"></li>
+        <li id="welcome-4"></li>
+      </ul>
+      <button id="welcome-close" class="primary-btn welcome-btn" data-i18n="welcome_button">Got it</button>
+    </div>
+  </div>
+
+  <!-- Geri al bildirimi -->
+  <div id="toast" class="toast" hidden>
+    <span id="toast-text" class="toast-text"></span>
+    <button id="toast-undo" class="toast-undo" data-i18n="undo">Undo</button>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="newtab.js"></script>
+</body>
+</html>

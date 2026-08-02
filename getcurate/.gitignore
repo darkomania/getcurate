@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build / packaging
+*.zip
+dist/
+build/
+node_modules/
+
+# Logs
+*.log
+
+# Chrome extension keys (ASLA commit etme)
+*.pem
+key.pem
