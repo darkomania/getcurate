@@ -1,24 +1,24 @@
 "use strict";
 
-/* ================= COK DILLI SOZLUK =================
-   Diller: en (Ingilizce), tr (Turkce), es (Ispanyolca),
-           de (Almanca), fr (Fransizca), pt (Portekizce)
-   Not: en ve tr elle hazirlandi; es/de/fr/pt cevirileri
-   gozden gecirilmeye acik (native konusmaci onerilir).
+/* ================= MULTI-LANGUAGE DICTIONARY =================
+   Languages: en (English), tr (Turkish), es (Spanish),
+              de (German), fr (French), pt (Portuguese)
+   Note: en and tr were prepared by hand; es/de/fr/pt translations
+   are open to review (a native speaker is recommended).
 */
 const I18N = {
   en: {
     lang_name: "English",
-    // Ust bar
+    // Top bar
     images: "Images",
     account_switch: "Switch account",
-    // Arama
+    // Search
     search_placeholder: "Search {engine} or type a URL",
     voice_search: "Voice search",
-    // Diger yer imleri
+    // Other bookmarks
     other_bookmarks: "Other bookmarks",
     empty_state: "No bookmarks yet. They'll appear here once you add some in Chrome.",
-    // Ayarlar
+    // Settings
     settings: "Settings",
     close: "Close",
     theme: "Theme",
@@ -42,7 +42,7 @@ const I18N = {
     folder_layout: "Folder layout",
     reset_order: "Reset order",
     layout_hint: "Drag folder cards by their title to reorder. You can also drag bookmarks within a card or between folders.",
-    // Sag tik menusu
+    // Right-click menu
     open_newtab: "Open in new tab",
     open_newwindow: "Open in new window",
     open_incognito: "Open in incognito window",
@@ -56,7 +56,7 @@ const I18N = {
     open_all_group: "Open all as a tab group",
     rename: "Rename",
     hide: "Hide",
-    // Duzenle dialogu
+    // Edit dialog
     edit_bookmark: "Edit bookmark",
     rename_folder: "Rename folder",
     name: "Name",
@@ -69,7 +69,7 @@ const I18N = {
     folder_deleted: "\"{name}\" folder deleted",
     changes_applied: "Changes applied to your bookmarks",
     undo: "Undo",
-    // Karsilama
+    // Welcome
     welcome_title: "Welcome to Curate",
     welcome_intro: "Your bookmark folders, shown here as cards. A few things worth knowing:",
     welcome_1_pre: "You can reorder bookmarks and folders by ",
@@ -85,7 +85,7 @@ const I18N = {
     welcome_4_strong: "settings",
     welcome_4_post: " (⚙) menu in the top-left.",
     welcome_button: "Got it, let's go",
-    // Onaylar
+    // Confirmations
     confirm_open_tabs: "{count} tabs will open. Continue?",
     confirm_open_group: "{count} tabs will open and be grouped. Continue?",
     confirm_apply_title: "Changes made before Permanent mode was on:",
@@ -489,7 +489,7 @@ const I18N = {
 const SUPPORTED_LANGS = ["en", "tr", "es", "de", "fr", "pt"];
 let currentLang = "en";
 
-// Tarayici dilinden desteklenen bir dil sec
+// Pick a supported language from the browser language
 function detectLang() {
   const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
   return SUPPORTED_LANGS.includes(nav) ? nav : "en";
@@ -499,7 +499,7 @@ function setLang(lang) {
   currentLang = SUPPORTED_LANGS.includes(lang) ? lang : "en";
 }
 
-// Ceviri getir; {placeholder} degistir
+// Get translation; replace {placeholder}
 function t(key, vars) {
   const dict = I18N[currentLang] || I18N.en;
   let str = dict[key] != null ? dict[key] : (I18N.en[key] != null ? I18N.en[key] : key);
@@ -509,7 +509,7 @@ function t(key, vars) {
   return str;
 }
 
-// data-i18n / data-i18n-attr olan tum DOM ogelerini cevir
+// Translate all DOM elements that have data-i18n / data-i18n-attr
 function applyDomTranslations(root = document) {
   root.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.dataset.i18n);

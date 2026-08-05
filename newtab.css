@@ -1,5 +1,5 @@
-/* ================= TEMALAR ================= */
-/* Yesil (varsayilan) */
+/* ================= THEMES ================= */
+/* Green (default) */
 :root,
 [data-theme="green"] {
   --bg:            #12201a;
@@ -16,7 +16,7 @@
   --overlay-bg:    rgba(6,14,10,.6);
 }
 
-/* Koyu (siyah-gri) */
+/* Dark (black-grey) */
 [data-theme="dark"] {
   --bg:            #0e0e10;
   --panel:         #16161a;
@@ -32,7 +32,7 @@
   --overlay-bg:    rgba(0,0,0,.62);
 }
 
-/* Acik */
+/* Light */
 [data-theme="light"] {
   --bg:            #f4f6f5;
   --panel:         #ffffff;
@@ -48,7 +48,7 @@
   --overlay-bg:    rgba(20,30,25,.35);
 }
 
-/* ================= ORTAK ================= */
+/* ================= SHARED ================= */
 :root {
   --radius:    16px;
   --radius-sm: 10px;
@@ -70,7 +70,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ================= UST BAR ================= */
+/* ================= TOP BAR ================= */
 .topbar {
   display: flex;
   align-items: center;
@@ -125,14 +125,14 @@ body {
   user-select: none;
 }
 
-/* ================= SAYFA ================= */
+/* ================= PAGE ================= */
 .page {
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 12px 28px 80px;
 }
 
-/* ---- Google logosu ---- */
+/* ---- Google logo ---- */
 .logo-wrap {
   display: flex;
   justify-content: center;
@@ -155,7 +155,7 @@ body {
 }
 .logo-wrap.hidden { display: none; }
 
-/* ---- Arama ---- */
+/* ---- Search ---- */
 .search-wrap { display: flex; justify-content: center; margin-bottom: 52px; }
 .search-bar {
   display: flex;
@@ -189,7 +189,7 @@ body {
 }
 .search-mic:hover { color: var(--accent); background: var(--ring); }
 
-/* ================= KLASORLER ================= */
+/* ================= FOLDERS ================= */
 .folders {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -207,12 +207,12 @@ body {
   min-width: 0;
   transition: box-shadow .2s ease, opacity .2s ease, transform .18s cubic-bezier(.2,.7,.3,1);
 }
-/* Suruklenen kartin yerinde kalan "kaynak" - soluk placeholder */
+/* The "source" left behind by the dragged card - dim placeholder */
 .folder.drag-source {
   opacity: .35;
   filter: grayscale(.3);
 }
-/* Imleci takip eden hayalet kopya - kalkik gorunum */
+/* The ghost copy that follows the cursor - lifted look */
 .folder.drag-ghost {
   opacity: .95;
   box-shadow: 0 18px 50px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.28);
@@ -231,7 +231,7 @@ body {
 }
 .folder-head:active { cursor: grabbing; }
 
-/* Surukleme aktifken tum sayfada metin secimini kapat */
+/* Disable text selection page-wide while dragging is active */
 body.dragging-active {
   user-select: none;
   cursor: grabbing;
@@ -269,11 +269,11 @@ body.dragging-active .link { cursor: grabbing; }
   overflow: hidden;
 }
 
-/* ---- Scroll edilebilir link listesi ---- */
+/* ---- Scrollable link list ---- */
 .folder-links.scrollable {
   overflow-y: auto;
   overflow-x: hidden;
-  /* Fade: ust ve alt kenarlarda icerigi soldur. Sinif ile acilip kapanir. */
+  /* Fade: fades out the content at the top and bottom edges. Toggled via class. */
   --fade-top: 0px;
   --fade-bottom: 24px;
   -webkit-mask-image: linear-gradient(
@@ -294,7 +294,7 @@ body.dragging-active .link { cursor: grabbing; }
 .folder-links.scrollable.fade-top    { --fade-top: 24px; }
 .folder-links.scrollable:not(.fade-bottom) { --fade-bottom: 0px; }
 
-/* Ince, temaya uygun scrollbar */
+/* Thin, theme-matching scrollbar */
 .folder-links.scrollable::-webkit-scrollbar {
   width: 6px;
 }
@@ -314,7 +314,7 @@ body.dragging-active .link { cursor: grabbing; }
 }
 .folder.collapsed .folder-body { display: none; }
 
-/* ---- Alt klasorler (nested, accordion) ---- */
+/* ---- Subfolders (nested, accordion) ---- */
 .subfolder {
   margin-top: 4px;
 }
@@ -327,7 +327,7 @@ body.dragging-active .link { cursor: grabbing; }
   cursor: pointer;
   color: var(--text-dim);
   transition: background .13s ease, color .13s ease;
-  /* girinti: derinlige gore sola bosluk */
+  /* indent: left spacing based on depth */
   padding-left: calc(8px + (var(--depth, 1) - 1) * 14px);
 }
 .subfolder-head:hover { background: var(--card-hover); color: var(--text); }
@@ -363,7 +363,7 @@ body.dragging-active .link { cursor: grabbing; }
   overflow: hidden;
 }
 .subfolder.collapsed > .subfolder-body { display: none; }
-/* alt klasor icindeki linkleri de girintile */
+/* also indent links inside the subfolder */
 .subfolder-body .folder-links .link {
   padding-left: calc(8px + var(--depth, 1) * 14px);
 }
@@ -382,11 +382,11 @@ body.dragging-active .link { cursor: grabbing; }
   transition: background .13s ease, color .13s ease, transform .16s cubic-bezier(.2,.7,.3,1), box-shadow .16s ease;
 }
 .link:hover { background: var(--card-hover); color: var(--text); }
-/* Suruklenen link'in yerinde kalan kaynagi - soluk */
+/* The source left behind by the dragged link - dim */
 .link.link-drag-source {
   opacity: .3;
 }
-/* Imleci takip eden hayalet link kopyasi */
+/* Ghost link copy that follows the cursor */
 .link.drag-ghost {
   background: var(--card-hover);
   box-shadow: 0 8px 22px rgba(0,0,0,.3);
@@ -407,7 +407,7 @@ body.dragging-active .link { cursor: grabbing; }
 }
 .link .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 
-/* ================= DIGER YER IMLERI ================= */
+/* ================= OTHER BOOKMARKS ================= */
 .loose { margin-top: 8px; }
 .loose-title {
   margin: 0 0 22px;
@@ -427,7 +427,7 @@ body.dragging-active .link { cursor: grabbing; }
   font-size: 15px; padding: 40px 0;
 }
 
-/* ================= AYARLAR ================= */
+/* ================= SETTINGS ================= */
 .overlay {
   position: fixed; inset: 0;
   background: var(--overlay-bg);
@@ -610,7 +610,7 @@ body.dragging-active .link { cursor: grabbing; }
 .vis-row input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
 .vis-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ================= SAG TIK MENUSU ================= */
+/* ================= RIGHT-CLICK MENU ================= */
 .context-menu {
   position: fixed;
   z-index: 1500;
@@ -651,7 +651,7 @@ body.dragging-active .link { cursor: grabbing; }
   margin: 5px 8px;
 }
 
-/* Duzenle / Yeniden adlandir dialogu */
+/* Edit / Rename dialog */
 .edit-panel {
   width: min(420px, 92vw);
   background: var(--panel);
@@ -682,7 +682,7 @@ body.dragging-active .link { cursor: grabbing; }
 .primary-btn:hover { filter: brightness(1.08); }
 [data-theme="light"] .primary-btn { color: #fff; }
 
-/* Ilk acilis karsilama karti */
+/* First-launch welcome card */
 .welcome-panel {
   width: min(460px, 92vw);
   max-height: 90vh;
@@ -748,7 +748,7 @@ body.dragging-active .link { cursor: grabbing; }
   font-size: 15px;
 }
 
-/* ================= SILME ANIMASYONU (collapse + fade) ================= */
+/* ================= DELETE ANIMATION (collapse + fade) ================= */
 .link.deleting,
 .folder.deleting {
   overflow: hidden;
@@ -774,9 +774,9 @@ body.dragging-active .link { cursor: grabbing; }
     border-width: 0;
   }
 }
-/* Silme oncesi olcum icin sabit yukseklik verilecek (JS'ten) */
+/* A fixed height will be set before deletion for measurement (from JS) */
 
-/* ================= GERI AL BILDIRIMI (TOAST) ================= */
+/* ================= UNDO NOTIFICATION (TOAST) ================= */
 .toast {
   position: fixed;
   bottom: 28px;

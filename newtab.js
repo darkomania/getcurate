@@ -1,6 +1,6 @@
 "use strict";
 
-/* ================= SABITLER ================= */
+/* ================= CONSTANTS ================= */
 const ENGINES = {
   google:     { url: "https://www.google.com/search?q=", label: "Google", suffix: "'da" },
   bing:       { url: "https://www.bing.com/search?q=", label: "Bing", suffix: "'de" },
@@ -25,12 +25,12 @@ const DEFAULTS = {
 
 let settings = { ...DEFAULTS };
 let localTree = { folders: [], loose: [] };
-let originalSnapshot = null; // Chrome'un ilk yuklenen hali (fark hesabi icin)
+let originalSnapshot = null; // Chrome's initial loaded state (for diff calculation)
 
-/* ================= AYAR YUKLE/KAYDET ================= */
-// Ayarlar chrome.storage.sync'te tutulur -> ayni Google hesabindaki tum
-// cihazlar arasinda otomatik senkronize olur. Eski surumlerden gelen
-// local ayarlar bir kerelik sync'e tasinir (migration).
+/* ================= LOAD/SAVE SETTINGS ================= */
+// Settings are kept in chrome.storage.sync -> automatically synced across
+// all devices on the same Google account. Local settings from older
+// versions are migrated to sync once (migration).
 function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get("settings", (syncRes) => {
@@ -39,11 +39,11 @@ function loadSettings() {
         resolve();
         return;
       }
-      // sync bos -> eski local ayarlari kontrol et ve tasi
+      // sync empty -> check for old local settings and migrate them
       chrome.storage.local.get("settings", (localRes) => {
         if (localRes && localRes.settings) {
           settings = { ...DEFAULTS, ...localRes.settings };
-          chrome.storage.sync.set({ settings }); // sync'e tasi
+          chrome.storage.sync.set({ settings }); // migrate to sync
         } else {
           settings = { ...DEFAULTS };
         }
@@ -55,13 +55,13 @@ function loadSettings() {
 function saveSettings() {
   chrome.storage.sync.set({ settings }, () => {
     if (chrome.runtime.lastError) {
-      // sync kotasi dolduysa veya sync kapaliysa local'a dus
+      // fall back to local if sync quota is full or sync is disabled
       chrome.storage.local.set({ settings });
     }
   });
 }
 
-// Baska bir cihazda ayar degisince bu sekmeyi canli guncelle
+// Live-update this tab when settings change on another device
 function initSyncListener() {
   if (!chrome.storage || !chrome.storage.onChanged) return;
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -69,14 +69,14 @@ function initSyncListener() {
     const incoming = changes.settings.newValue;
     if (!incoming) return;
     settings = { ...DEFAULTS, ...incoming };
-    // Baska cihazda dil degistiyse uygula
+    // Apply if the language changed on another device
     if (settings.language && settings.language !== currentLang) {
       setLang(settings.language);
       document.documentElement.lang = currentLang;
       applyDomTranslations();
       fillWelcomeText();
     }
-    // Gorunumu yeni ayarlara gore tazele
+    // Refresh the view according to the new settings
     applyTheme();
     updateLogo();
     updatePlaceholder();
@@ -86,7 +86,7 @@ function initSyncListener() {
   });
 }
 
-/* ================= TEMA ================= */
+/* ================= THEME ================= */
 const media = window.matchMedia("(prefers-color-scheme: dark)");
 function resolveTheme() {
   if (settings.theme === "system") return media.matches ? "dark" : "light";
@@ -98,7 +98,7 @@ function applyTheme() {
 }
 
 /* ================= AVATAR ================= */
-// E-postadan foto cekmek bir eklentide mumkun degil; harf + renk gosteriyoruz.
+// Fetching a photo from the email isn't possible in an extension; we show a letter + color instead.
 const AVATAR_COLORS = [
   "#4285F4", "#EA4335", "#FBBC05", "#34A853",
   "#8E44AD", "#16A085", "#E67E22", "#2C3E50"
@@ -108,7 +108,7 @@ function updateAvatar() {
   if (!el) return;
   const letter = (settings.avatarLetter || "G").trim().slice(0, 2) || "G";
   el.textContent = letter.toUpperCase();
-  // Harfe gore tutarli bir renk sec
+  // Pick a consistent color based on the letter
   let sum = 0;
   for (const ch of letter.toUpperCase()) sum += ch.charCodeAt(0);
   const color = AVATAR_COLORS[sum % AVATAR_COLORS.length];
@@ -116,8 +116,8 @@ function updateAvatar() {
 }
 media.addEventListener("change", () => { if (settings.theme === "system") applyTheme(); });
 
-/* ================= LOGO / MARKA ================= */
-// Google seciliyse Google logosu; diger motorlarda motor adi metin olarak.
+/* ================= LOGO / BRAND ================= */
+// If Google is selected, show the Google logo; for other engines, show the engine name as text.
 const LOGO_COLOR = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
 
 function updateLogo() {
@@ -130,31 +130,31 @@ function updateLogo() {
 
   const engine = settings.engine || "google";
   if (engine === "google") {
-    // Google logosu (resim)
+    // Google logo (image)
     textLogo.hidden = true;
     img.hidden = false;
     img.onerror = () => { img.style.visibility = "hidden"; };
     img.onload = () => { img.style.visibility = "visible"; };
     img.src = LOGO_COLOR;
   } else {
-    // Diger motorlar: adi metin olarak
+    // Other engines: show the name as text
     img.hidden = true;
     textLogo.hidden = false;
     textLogo.textContent = (ENGINES[engine] || ENGINES.google).label;
   }
 }
 
-// Arama kutusu placeholder'ini secili motora gore ayarlar
+// Sets the search box placeholder based on the selected engine
 function updatePlaceholder() {
   const input = document.getElementById("search-input");
   if (!input) return;
   const e = ENGINES[settings.engine] || ENGINES.google;
-  // Turkce'de motor adina ek gelir (Google'da, Bing'de); diger dillerde sozlukteki format kullanilir.
+  // In Turkish, a suffix is appended to the engine name (Google'da, Bing'de); other languages use the format from the dictionary.
   const engineName = currentLang === "tr" ? `${e.label}${e.suffix}` : e.label;
   input.placeholder = t("search_placeholder", { engine: engineName });
 }
 
-/* ================= ARAMA ================= */
+/* ================= SEARCH ================= */
 const form = document.getElementById("search-form");
 const input = document.getElementById("search-input");
 form.addEventListener("submit", (e) => {
@@ -185,14 +185,14 @@ function hostnameOf(url) {
   catch { return url; }
 }
 
-/* ================= AGAC ISLEME ================= */
+/* ================= TREE PROCESSING ================= */
 function directBookmarks(node) {
   return (node.children || []).filter((c) => c.url)
     .map((c) => ({ id: c.id, title: c.title, url: c.url, parentId: c.parentId }));
 }
 
-// Bir klasor dugumunu {id, title, links, subfolders} agacina cevirir (ozyinelemeli).
-// Icinde hic yer imi/alt klasor olmayan bos klasorleri atlar.
+// Converts a folder node into a {id, title, links, subfolders} tree (recursive).
+// Skips empty folders that have no bookmarks/subfolders inside.
 function buildFolderNode(node) {
   const links = directBookmarks(node);
   const subfolders = [];
@@ -202,11 +202,11 @@ function buildFolderNode(node) {
       if (sub) subfolders.push(sub);
     }
   }
-  if (!links.length && !subfolders.length) return null; // bos klasor
+  if (!links.length && !subfolders.length) return null; // empty folder
   return { id: node.id, title: node.title, links, subfolders };
 }
 
-// Ust duzey konteynerlerin (Bookmarks Bar, Other) altindaki klasorleri toplar.
+// Collects the folders under the top-level containers (Bookmarks Bar, Other).
 function collectTopFolders(node, acc) {
   for (const child of node.children || []) {
     if (child.children && child.title) {
@@ -216,7 +216,7 @@ function collectTopFolders(node, acc) {
   }
 }
 
-/* ================= LINK OGESI ================= */
+/* ================= LINK ITEM ================= */
 function makeLink(node, folderId) {
   const a = document.createElement("a");
   a.className = "link";
@@ -243,7 +243,7 @@ function makeLink(node, folderId) {
   return a;
 }
 
-/* ================= SIRALAMA (klasor kartlari) ================= */
+/* ================= SORTING (folder cards) ================= */
 function sortByOrder(folders) {
   const order = settings.order || [];
   const idx = new Map(order.map((id, i) => [id, i]));
@@ -293,7 +293,7 @@ function renderFolders() {
 
     head.append(toggle, h);
 
-    // Kartin govdesi: dogrudan linkler + alt klasorler
+    // The card body: direct links + subfolders
     const body = document.createElement("div");
     body.className = "folder-body";
 
@@ -304,7 +304,7 @@ function renderFolders() {
     body.appendChild(list);
     applyScrollIfNeeded(list, folder.links.length);
 
-    // Alt klasorler (ozyinelemeli)
+    // Subfolders (recursive)
     for (const sub of folder.subfolders || []) {
       body.appendChild(renderSubfolder(sub, 1));
     }
@@ -315,7 +315,7 @@ function renderFolders() {
   }
 }
 
-// Alt klasoru ozyinelemeli olarak render eder (accordion). depth: girinti seviyesi.
+// Renders a subfolder recursively (accordion). depth: indentation level.
 function renderSubfolder(folder, depth) {
   const wrap = document.createElement("div");
   wrap.className = "subfolder";
@@ -359,7 +359,7 @@ function renderSubfolder(folder, depth) {
   body.appendChild(list);
   applyScrollIfNeeded(list, folder.links.length);
 
-  // Daha derin alt klasorler
+  // Deeper subfolders
   for (const sub of folder.subfolders || []) {
     body.appendChild(renderSubfolder(sub, depth + 1));
   }
@@ -368,14 +368,14 @@ function renderSubfolder(folder, depth) {
   return wrap;
 }
 
-// Bir klasordeki toplam link sayisi (alt klasorler dahil)
+// Total link count in a folder (including subfolders)
 function countLinks(folder) {
   let n = folder.links.length;
   for (const sub of folder.subfolders || []) n += countLinks(sub);
   return n;
 }
 
-// collapsed durumunu kaydet
+// Save the collapsed state
 function persistCollapsed(id, isCollapsed) {
   const set = new Set(settings.collapsed || []);
   if (isCollapsed) set.add(id);
@@ -384,18 +384,18 @@ function persistCollapsed(id, isCollapsed) {
   saveSettings();
 }
 
-/* ---- Klasor ici scroll + fade ---- */
-const LINK_ROW_HEIGHT = 32; // px, bir link satirinin yaklasik yuksekligi (padding dahil)
+/* ---- In-folder scroll + fade ---- */
+const LINK_ROW_HEIGHT = 32; // px, approximate height of a link row (including padding)
 
 function applyScrollIfNeeded(list, linkCount) {
   const max = settings.maxLinks || 10;
-  if (linkCount <= max) return; // scroll gerekmez
+  if (linkCount <= max) return; // scroll not needed
 
   list.classList.add("scrollable");
-  // Maksimum yukseklik: max kadar satir gorunsun
+  // Max height: show up to "max" rows
   list.style.maxHeight = (max * LINK_ROW_HEIGHT) + "px";
 
-  // Fade durumunu scroll'a gore guncelle
+  // Update the fade state based on scroll position
   const updateFade = () => {
     const atTop = list.scrollTop <= 1;
     const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
@@ -403,12 +403,12 @@ function applyScrollIfNeeded(list, linkCount) {
     list.classList.toggle("fade-bottom", !atBottom);
   };
   list.addEventListener("scroll", updateFade, { passive: true });
-  // Ilk durum: alt fade acik (baslangicta en ustte)
+  // Initial state: bottom fade on (starts scrolled to top)
   requestAnimationFrame(updateFade);
 }
 
-/* ---- Ic ice klasor gezme yardimcilari ---- */
-// Tum klasorleri (ic ice dahil) duz liste olarak dondurur
+/* ---- Nested folder traversal helpers ---- */
+// Returns all folders (including nested) as a flat list
 function allFolders(folders = localTree.folders, acc = []) {
   for (const f of folders) {
     acc.push(f);
@@ -416,7 +416,7 @@ function allFolders(folders = localTree.folders, acc = []) {
   }
   return acc;
 }
-// Bir klasoru id ile bulur (ic ice dahil), ebeveyniyle birlikte
+// Finds a folder by id (including nested), along with its parent
 function findFolderById(id, folders = localTree.folders, parent = null) {
   for (const f of folders) {
     if (f.id === id) return { folder: f, parentList: folders, parent };
@@ -438,14 +438,14 @@ function renderLoose() {
   for (const b of localTree.loose) cols.appendChild(makeLink(b, "loose"));
 }
 
-/* ================= FLIP ANIMASYON ================= */
+/* ================= FLIP ANIMATION ================= */
 function flip(container, selector, mutate) {
   const els = [...container.querySelectorAll(selector)];
   const first = new Map(els.map((el) => [el, el.getBoundingClientRect()]));
   mutate();
   const elsAfter = [...container.querySelectorAll(selector)];
 
-  // Hareket eden ogeleri topla (suruklenen ogeyi haric tut - onun kendi efekti var)
+  // Collect the elements that moved (excluding the dragged element - it has its own effect)
   const movers = [];
   for (const el of elsAfter) {
     if (el.classList.contains("drag-source") || el.classList.contains("link-drag-source")) continue;
@@ -458,10 +458,10 @@ function flip(container, selector, mutate) {
   }
   if (!movers.length) return;
 
-  // Stagger: kaynaga yakin olan once, uzak olan biraz gecikmeli hareket etsin (dalga etkisi)
+  // Stagger: elements closer to the source move first, farther ones move with a slight delay (wave effect)
   movers.sort((a, b) => a.dist - b.dist);
-  const STEP = 18;   // ms, ogeler arasi gecikme
-  const MAX_DELAY = 90; // ms, ust sinir
+  const STEP = 18;   // ms, delay between elements
+  const MAX_DELAY = 90; // ms, upper bound
 
   movers.forEach(({ el, dx, dy }, i) => {
     const delay = Math.min(i * STEP, MAX_DELAY);
@@ -475,16 +475,17 @@ function flip(container, selector, mutate) {
   });
 }
 
-/* ================= POINTER TABANLI SURUKLE-BIRAK =================
-   Native HTML5 drag yerine pointer events kullaniyoruz. Bu, surukleme
-   sirasinda diger ogelerin CANLI olarak yer acmasini saglar (Trello/Notion tarzi).
+/* ================= POINTER-BASED DRAG-AND-DROP =================
+   We use pointer events instead of native HTML5 drag. This lets other
+   elements make room LIVE while dragging (Trello/Notion style).
 
-   Mantik:
-   - pointerdown: baslangic noktasini kaydet, henuz suruklemeye baslama
-   - pointermove: belli bir esigi (5px) gecince suruklemeyi baslat; suruklenen
-     ogenin bir "hayalet" kopyasini imlecin altinda tut; altindaki hedefe gore
-     gercek ogeyi DOM'da tasi ve FLIP ile aradakileri canli kaydir
-   - pointerup: hayaleti kaldir, sirayi kaydet
+   Logic:
+   - pointerdown: record the starting point, don't start dragging yet
+   - pointermove: once a threshold (5px) is crossed, start the drag; keep a
+     "ghost" copy of the dragged element under the cursor; move the real
+     element in the DOM based on the target underneath, and live-shift the
+     elements in between using FLIP
+   - pointerup: remove the ghost, save the order
 ================================================================= */
 
 const DRAG_THRESHOLD = 5; // px
@@ -497,7 +498,7 @@ let dragState = null;
    } */
 
 function startPointerDrag(e, el, type) {
-  // Sadece sol tikla / tek parmakla
+  // Left click / single finger only
   if (e.button !== undefined && e.button !== 0) return;
 
   const rect = el.getBoundingClientRect();
@@ -525,7 +526,7 @@ function beginDrag() {
   const s = dragState;
   s.started = true;
 
-  // Hayalet olustur (suruklenen ogenin gorsel kopyasi imleci takip eder)
+  // Create the ghost (a visual copy of the dragged element that follows the cursor)
   const ghost = s.el.cloneNode(true);
   ghost.classList.add("drag-ghost");
   ghost.style.width = s.width + "px";
@@ -539,7 +540,7 @@ function beginDrag() {
   document.body.appendChild(ghost);
   s.ghost = ghost;
 
-  // Orijinal oge yerinde kalir ama "kaynak" olarak soluklastirilir
+  // The original element stays in place but is dimmed as the "source"
   s.el.classList.add(s.type === "card" ? "drag-source" : "link-drag-source");
 
   document.body.classList.add("dragging-active");
@@ -570,13 +571,13 @@ function onPointerMove(e) {
   else handleLinkReorder(e);
 }
 
-/* ---- KART yeniden siralama ---- */
+/* ---- CARD reordering ---- */
 function handleCardReorder(e) {
   const s = dragState;
   const container = s.container;
   const cards = [...container.querySelectorAll(".folder")].filter((c) => c !== s.el);
 
-  // Imlecin uzerinde oldugu karti bul
+  // Find the card under the cursor
   let target = null;
   for (const c of cards) {
     const r = c.getBoundingClientRect();
@@ -589,7 +590,7 @@ function handleCardReorder(e) {
   if (!target) return;
 
   const r = target.getBoundingClientRect();
-  // Grid oldugu icin hem yatay hem dikey konuma bak
+  // Since it's a grid, check both horizontal and vertical position
   const after = (e.clientY - r.top) > r.height / 2 ||
                 (Math.abs(e.clientY - (r.top + r.height/2)) < r.height/2 && e.clientX > r.left + r.width/2);
 
@@ -599,11 +600,11 @@ function handleCardReorder(e) {
   });
 }
 
-/* ---- LINK yeniden siralama / tasima ---- */
+/* ---- LINK reordering / moving ---- */
 function handleLinkReorder(e) {
   const s = dragState;
 
-  // Imlecin uzerinde oldugu listeyi bul (klasor ici veya loose)
+  // Find the list under the cursor (inside a folder or loose)
   const lists = [
     ...document.querySelectorAll(".folder-links"),
     document.getElementById("loose-columns")
@@ -620,12 +621,12 @@ function handleLinkReorder(e) {
   }
   if (!targetList) return;
 
-  // Hedef liste vurgusu: kaynak klasorden FARKLI bir listeye giriyorsak vurgula
+  // Target list highlight: highlight if entering a list DIFFERENT from the source folder
   document.querySelectorAll(".list-drop-active").forEach((l) => l.classList.remove("list-drop-active"));
   const targetFolder = targetList.dataset.folder;
   if (targetFolder !== s.originFolder) targetList.classList.add("list-drop-active");
 
-  // Listedeki hedef link'i bul
+  // Find the target link in the list
   const links = [...targetList.querySelectorAll(".link")].filter((l) => l !== s.el);
   let target = null;
   for (const l of links) {
@@ -646,7 +647,7 @@ function handleLinkReorder(e) {
       else target.before(s.el);
     });
   } else if (!targetList.contains(s.el)) {
-    // Bos listeye veya sona birak
+    // Drop into an empty list or at the end
     flip(container, ".link", () => { targetList.appendChild(s.el); });
   }
 }
@@ -657,7 +658,7 @@ function onPointerUp() {
   if (!s) return;
 
   if (s.started && s.ghost) {
-    // Hayaleti son konumdan gercek ogenin konumuna yumusakca oturt
+    // Smoothly settle the ghost from its last position to the real element's position
     const finalRect = s.el.getBoundingClientRect();
     s.ghost.style.transition = "transform .2s cubic-bezier(.2,.7,.3,1)";
     s.ghost.style.transform = `translate(${finalRect.left}px, ${finalRect.top}px) scale(1) rotate(0deg)`;
@@ -674,7 +675,7 @@ function onPointerUp() {
     if (s.type === "card") {
       persistCardOrder(document.getElementById("folders"));
     } else {
-      // Suruklendi -> bir sonraki click'i engelle (yanlislikla linke gitmesin)
+      // Was dragged -> block the next click (avoid accidentally navigating the link)
       s.el.dataset.wasDragged = "1";
       finalizeLinkMove(s.el);
     }
@@ -683,12 +684,12 @@ function onPointerUp() {
   dragState = null;
 }
 
-/* ================= OGELERE POINTER DRAG BAGLA ================= */
+/* ================= ATTACH POINTER DRAG TO ELEMENTS ================= */
 function attachCardDrag(card) {
   const head = card.querySelector(".folder-head");
   const handle = head || card;
   handle.addEventListener("pointerdown", (e) => {
-    // toggle butonuna basildiysa surukleme baslatma
+    // don't start dragging if the toggle button was clicked
     if (e.target.closest(".folder-toggle")) return;
     startPointerDrag(e, card, "card");
   });
@@ -698,7 +699,7 @@ function attachLinkDrag(a) {
   a.addEventListener("pointerdown", (e) => {
     startPointerDrag(e, a, "link");
   });
-  // Surukleme olduysa tiklamayi engelle (yanlislikla linke gitmesin)
+  // Block the click if it was a drag (avoid accidentally navigating the link)
   a.addEventListener("click", (e) => {
     if (a.dataset.wasDragged === "1") {
       e.preventDefault();
@@ -724,8 +725,8 @@ function finalizeLinkMove(a) {
 function rebuildModelFromDOM() {
   const byId = indexAllLinks();
 
-  // Her klasorun (ic ice dahil) linklerini DOM'daki karsilik gelen listeden guncelle.
-  // Agac yapisi (subfolders) korunur; sadece links dizileri yeniden siralanir/tasinir.
+  // Update each folder's (including nested) links from its corresponding DOM list.
+  // The tree structure (subfolders) is preserved; only the links arrays are reordered/moved.
   const listsByFolder = new Map();
   document.querySelectorAll(".folder-links[data-folder]").forEach((list) => {
     const fid = list.dataset.folder;
@@ -735,7 +736,7 @@ function rebuildModelFromDOM() {
     listsByFolder.set(fid, links);
   });
 
-  // Modeldeki her klasorun links'ini guncelle
+  // Update every folder's links in the model
   for (const f of allFolders()) {
     if (listsByFolder.has(f.id)) f.links = listsByFolder.get(f.id);
   }
@@ -763,22 +764,22 @@ function persistLinkToChrome(a, toFolder) {
   if (index >= 0) dest.index = index;
   try {
     chrome.bookmarks.move(bookmarkId, dest, () => {
-      if (chrome.runtime.lastError) console.warn("Tasima basarisiz:", chrome.runtime.lastError.message);
+      if (chrome.runtime.lastError) console.warn("Move failed:", chrome.runtime.lastError.message);
       a.dataset.folder = toFolder;
     });
   } catch (err) {
-    console.warn("Tasima hatasi:", err);
+    console.warn("Move error:", err);
   }
 }
 
-/* ================= SILME + GERI AL ================= */
+/* ================= DELETE + UNDO ================= */
 let pendingDelete = null; // { type, data, timer, restore }
 
-// Bir DOM ogesini collapse+fade ile kaldirir, bitince callback cagirir
+// Removes a DOM element with a collapse+fade animation, calls the callback when done
 function animateRemove(el, done) {
-  // max-height'i sabitle ki collapse animasyonu calissin
+  // Fix the max-height so the collapse animation works
   el.style.maxHeight = el.scrollHeight + "px";
-  // reflow tetikle
+  // trigger reflow
   void el.offsetHeight;
   el.classList.add("deleting");
   let finished = false;
@@ -789,16 +790,16 @@ function animateRemove(el, done) {
     if (done) done();
   };
   el.addEventListener("animationend", finish, { once: true });
-  setTimeout(finish, 400); // guvenlik
+  setTimeout(finish, 400); // safety net
 }
 
-// Yer imi silme
+// Delete bookmark
 function deleteBookmark(linkEl) {
   const id = linkEl.dataset.id;
   const folderId = linkEl.dataset.folder;
-  const title = linkEl.querySelector(".label")?.textContent || "Yer imi";
+  const title = linkEl.querySelector(".label")?.textContent || "Bookmark";
 
-  // Modelden bul (geri alma icin sakla)
+  // Find it in the model (save it for undo)
   const model = findLinkInModel(id);
   if (!model) return;
 
@@ -814,15 +815,15 @@ function deleteBookmark(linkEl) {
       if (settings.persistMoves) {
         try {
           chrome.bookmarks.remove(id, () => {
-            if (chrome.runtime.lastError) console.warn("Silme hatasi:", chrome.runtime.lastError.message);
+            if (chrome.runtime.lastError) console.warn("Delete error:", chrome.runtime.lastError.message);
           });
-        } catch (err) { console.warn("Silme hatasi:", err); }
+        } catch (err) { console.warn("Delete error:", err); }
       }
     }
   });
 }
 
-// Klasor silme (ic ice dahil)
+// Delete folder (including nested)
 function deleteFolder(cardEl) {
   const id = cardEl.dataset.id;
   const found = findFolderById(id);
@@ -849,15 +850,15 @@ function deleteFolder(cardEl) {
       if (settings.persistMoves) {
         try {
           chrome.bookmarks.removeTree(id, () => {
-            if (chrome.runtime.lastError) console.warn("Klasör silme hatasi:", chrome.runtime.lastError.message);
+            if (chrome.runtime.lastError) console.warn("Folder delete error:", chrome.runtime.lastError.message);
           });
-        } catch (err) { console.warn("Klasör silme hatasi:", err); }
+        } catch (err) { console.warn("Folder delete error:", err); }
       }
     }
   });
 }
 
-// Model yardimcilari
+// Model helpers
 function findLinkInModel(id) {
   for (const f of allFolders()) {
     const i = f.links.findIndex((l) => l.id === id);
@@ -877,13 +878,13 @@ function restoreLinkToModel(link, folderId, index) {
   } else {
     const r = findFolderById(folderId);
     if (r) r.folder.links.splice(Math.min(index, r.folder.links.length), 0, link);
-    else localTree.loose.push(link); // klasor yoksa loose'a
+    else localTree.loose.push(link); // no folder -> loose
   }
 }
 
-// Silme islemini 5sn geciktir + toast goster
+// Delay the delete by 5s + show a toast
 function scheduleDelete({ label, restore, commit }) {
-  // Onceki bekleyen silme varsa hemen kesinlestir
+  // If there's a previous pending delete, commit it immediately
   if (pendingDelete) commitPendingNow();
 
   const timer = setTimeout(() => {
@@ -920,7 +921,7 @@ function showToast(text, autoHideMs) {
   const toast = document.getElementById("toast");
   const undoBtn = document.getElementById("toast-undo");
   document.getElementById("toast-text").textContent = text;
-  // autoHideMs verilirse bu bilgi amacli bir bildirimdir -> Geri al'i gizle
+  // If autoHideMs is given, this is an informational notification -> hide Undo
   undoBtn.style.display = autoHideMs ? "none" : "";
   toast.hidden = false;
   void toast.offsetHeight;
@@ -937,7 +938,7 @@ function hideToast() {
   toastTimer = setTimeout(() => { toast.hidden = true; }, 220);
 }
 
-/* ---- Sag tik menusu ---- */
+/* ---- Right-click menu ---- */
 let contextTarget = null;
 
 function initContextMenu() {
@@ -955,7 +956,7 @@ function initContextMenu() {
       e.preventDefault();
       const card = folderHead.closest(".folder");
       contextTarget = { type: "folder", el: card };
-      // Toggle etiketini duruma gore ayarla
+      // Set the toggle label based on state
       const label = folderMenu.querySelector("[data-toggle-label]");
       label.textContent = card.classList.contains("collapsed") ? t("expand") : t("collapse");
       showContextMenu(folderMenu, e.clientX, e.clientY);
@@ -969,7 +970,7 @@ function initContextMenu() {
   window.addEventListener("blur", () => hideContextMenu());
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideContextMenu(); });
 
-  // --- Yer imi menusu aksiyonlari ---
+  // --- Bookmark menu actions ---
   linkMenu.addEventListener("click", (e) => {
     const btn = e.target.closest(".context-item");
     if (!btn || !contextTarget) return;
@@ -988,7 +989,7 @@ function initContextMenu() {
     hideContextMenu();
   });
 
-  // --- Klasor menusu aksiyonlari ---
+  // --- Folder menu actions ---
   folderMenu.addEventListener("click", (e) => {
     const btn = e.target.closest(".context-item");
     if (!btn || !contextTarget) return;
@@ -1006,14 +1007,14 @@ function initContextMenu() {
     hideContextMenu();
   });
 
-  // Toast geri al
+  // Toast undo
   document.getElementById("toast-undo").addEventListener("click", undoPendingDelete);
 
   initEditDialog();
 }
 
 function showContextMenu(menu, x, y) {
-  // digerini kapat
+  // close the other one
   document.querySelectorAll(".context-menu").forEach((m) => { if (m !== menu) m.hidden = true; });
   menu.hidden = false;
   const rect = menu.getBoundingClientRect();
@@ -1027,12 +1028,12 @@ function hideContextMenu() {
   contextTarget = null;
 }
 
-/* ---- Aksiyon yardimcilari ---- */
+/* ---- Action helpers ---- */
 function openInWindow(url, incognito) {
   try {
     chrome.windows.create({ url, incognito }, () => {
       if (chrome.runtime.lastError) {
-        // izin/incognito kapali olabilir - yeni sekmeye dus
+        // permission/incognito might be disabled - fall back to a new tab
         window.open(url, "_blank");
       }
     });
@@ -1073,7 +1074,7 @@ function openAllInFolder(card) {
   }
 }
 
-// Chrome sekme grubu renkleri
+// Chrome tab group colors
 const TAB_GROUP_COLORS = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
 
 function openAllAsGroup(card) {
@@ -1082,16 +1083,16 @@ function openAllAsGroup(card) {
   if (links.length > 8 &&
       !confirm(t("confirm_open_group", { count: links.length }))) return;
 
-  const folderTitle = card.querySelector(".folder-title")?.textContent || "Grup";
+  const folderTitle = card.querySelector(".folder-title")?.textContent || "Group";
   const folderId = card.dataset.id;
 
-  // tabGroups API'si yoksa (destek yok) normal acmaya dus
+  // fall back to normal opening if the tabGroups API isn't available (unsupported)
   if (!chrome.tabs || !chrome.tabs.group) {
     openAllInFolder(card);
     return;
   }
 
-  // Once tum sekmeleri olustur, id'lerini topla, sonra grupla
+  // First create all tabs, collect their ids, then group them
   const urls = links.map((a) => a.href);
   const tabIds = [];
   let remaining = urls.length;
@@ -1114,21 +1115,21 @@ function groupTabs(tabIds, title, folderId) {
   try {
     chrome.tabs.group({ tabIds }, (groupId) => {
       if (chrome.runtime.lastError || groupId == null) {
-        console.warn("Gruplama hatasi:", chrome.runtime.lastError && chrome.runtime.lastError.message);
+        console.warn("Grouping error:", chrome.runtime.lastError && chrome.runtime.lastError.message);
         return;
       }
-      // Gruba klasor adi ve tutarli bir renk ver
+      // Give the group the folder name and a consistent color
       let sum = 0;
       for (const ch of (folderId || title)) sum += ch.charCodeAt(0);
       const color = TAB_GROUP_COLORS[sum % TAB_GROUP_COLORS.length];
       try {
         chrome.tabGroups.update(groupId, { title, color }, () => {
-          if (chrome.runtime.lastError) console.warn("Grup guncelleme:", chrome.runtime.lastError.message);
+          if (chrome.runtime.lastError) console.warn("Group update error:", chrome.runtime.lastError.message);
         });
       } catch (err) { console.warn(err); }
     });
   } catch (err) {
-    console.warn("Gruplama hatasi:", err);
+    console.warn("Grouping error:", err);
   }
 }
 
@@ -1151,7 +1152,7 @@ function hideFolderCard(card) {
   renderFolders();
 }
 
-/* ================= DUZENLE / YENIDEN ADLANDIR ================= */
+/* ================= EDIT / RENAME ================= */
 let editTarget = null;
 
 function initEditDialog() {
@@ -1206,25 +1207,25 @@ function saveEdit() {
   const id = editTarget.id;
 
   if (editTarget.type === "link") {
-    // Modeli guncelle
+    // Update the model
     const found = findLinkInModel(id);
     if (found) { found.link.title = name; found.link.url = url || found.link.url; }
-    // Kalici modda gercek yer imini guncelle
+    // In persistent mode, update the actual bookmark
     if (settings.persistMoves) {
       try {
         chrome.bookmarks.update(id, { title: name, url: url || undefined }, () => {
-          if (chrome.runtime.lastError) console.warn("Guncelleme hatasi:", chrome.runtime.lastError.message);
+          if (chrome.runtime.lastError) console.warn("Update error:", chrome.runtime.lastError.message);
         });
       } catch (err) { console.warn(err); }
     }
   } else {
-    // Klasor adi (ic ice dahil)
+    // Folder name (including nested)
     const r = findFolderById(id);
     if (r) r.folder.title = name;
     if (settings.persistMoves) {
       try {
         chrome.bookmarks.update(id, { title: name }, () => {
-          if (chrome.runtime.lastError) console.warn("Guncelleme hatasi:", chrome.runtime.lastError.message);
+          if (chrome.runtime.lastError) console.warn("Update error:", chrome.runtime.lastError.message);
         });
       } catch (err) { console.warn(err); }
     }
@@ -1235,24 +1236,24 @@ function saveEdit() {
   renderAll();
 }
 
-/* ================= AYARLAR PANELI ================= */
-/* ================= KALICI MOD: FARK HESAPLAMA VE UYGULAMA ================= */
-// localTree'nin su anki hali ile originalSnapshot'i karsilastirir.
+/* ================= SETTINGS PANEL ================= */
+/* ================= PERSISTENT MODE: DIFF CALCULATION AND APPLY ================= */
+// Compares the current state of localTree with originalSnapshot.
 function computeDiff() {
-  const moves = [];   // { id, parentId, index }  - tasima/siralama
-  const updates = [];  // { id, title, url }        - yeniden adlandirma/duzenleme
-  const deletes = [];  // { id, isFolder }          - silinen ogeler
+  const moves = [];   // { id, parentId, index }  - move/reorder
+  const updates = [];  // { id, title, url }        - rename/edit
+  const deletes = [];  // { id, isFolder }          - deleted items
 
   if (!originalSnapshot) return { moves, updates, deletes };
 
-  // Su anki durumu snapshot formatina getir (ic ice klasorler dahil)
+  // Convert the current state into snapshot format (including nested folders)
   const current = snapshotTree(localTree.folders, localTree.loose);
   const currentBookmarks = current.bookmarks;
   const currentFolders = current.folders;
 
   const orig = originalSnapshot;
 
-  // SILINENLER: orijinalde olup su an olmayan
+  // DELETIONS: existed in the original but not anymore
   for (const [id, o] of orig.bookmarks) {
     if (!currentBookmarks.has(id)) deletes.push({ id, isFolder: false });
   }
@@ -1260,20 +1261,20 @@ function computeDiff() {
     if (!currentFolders.has(id)) deletes.push({ id, isFolder: true });
   }
 
-  // TASIMA + DUZENLEME: her mevcut yer imi icin
+  // MOVE + EDIT: for every existing bookmark
   for (const [id, c] of currentBookmarks) {
     const o = orig.bookmarks.get(id);
-    if (!o) continue; // yeni eklenen (bu uygulamada olmaz)
-    // parent veya index degistiyse -> tasima
+    if (!o) continue; // newly added (doesn't happen in this app)
+    // if parent or index changed -> move
     if (c.parentId !== o.parentId || c.index !== o.index) {
       moves.push({ id, parentId: c.parentId, index: c.index });
     }
-    // title veya url degistiyse -> guncelleme
+    // if title or url changed -> update
     if (c.title !== o.title || c.url !== o.url) {
       updates.push({ id, title: c.title, url: c.url });
     }
   }
-  // Klasor adi degisimi
+  // Folder name change
   for (const [id, c] of currentFolders) {
     const o = orig.folders.get(id);
     if (o && c.title !== o.title) updates.push({ id, title: c.title });
@@ -1296,30 +1297,30 @@ function promptApplyChanges(diff, total) {
   }
 }
 
-// Farklari Chrome'a uygula: once silmeler, sonra guncellemeler, en son tasimalar
+// Apply the diff to Chrome: deletions first, then updates, then moves
 function applyDiffToChrome(diff) {
-  // 1) Silmeler
+  // 1) Deletions
   for (const d of diff.deletes) {
     try {
       if (d.isFolder) chrome.bookmarks.removeTree(d.id, checkErr);
       else chrome.bookmarks.remove(d.id, checkErr);
     } catch (e) { console.warn(e); }
   }
-  // 2) Guncellemeler (ad/url)
+  // 2) Updates (name/url)
   for (const u of diff.updates) {
     const changes = {};
     if (u.title !== undefined) changes.title = u.title;
     if (u.url !== undefined) changes.url = u.url;
     try { chrome.bookmarks.update(u.id, changes, checkErr); } catch (e) { console.warn(e); }
   }
-  // 3) Tasimalar: index sirasina gore uygula (dogru yerlesim icin)
+  // 3) Moves: apply in index order (for correct placement)
   const moves = [...diff.moves].sort((a, b) => a.index - b.index);
   for (const m of moves) {
     const dest = { index: m.index };
     if (m.parentId !== "loose") dest.parentId = m.parentId;
     try { chrome.bookmarks.move(m.id, dest, checkErr); } catch (e) { console.warn(e); }
   }
-  // Uygulama sonrasi snapshot'i guncelle (artik bu yeni "orijinal")
+  // Update the snapshot after applying (this is now the new "original")
   setTimeout(() => {
     originalSnapshot = snapshotTree(localTree.folders, localTree.loose);
     showToast(t("changes_applied"), 2500);
@@ -1327,7 +1328,7 @@ function applyDiffToChrome(diff) {
 }
 
 function checkErr() {
-  if (chrome.runtime.lastError) console.warn("Uygulama hatasi:", chrome.runtime.lastError.message);
+  if (chrome.runtime.lastError) console.warn("Apply error:", chrome.runtime.lastError.message);
 }
 
 function initSettingsPanel() {
@@ -1363,7 +1364,7 @@ function initSettingsPanel() {
   const langSel = document.getElementById("lang-select");
   langSel.addEventListener("change", () => {
     changeLanguage(langSel.value);
-    populateLangSelect(); // secili dili guncelle
+    populateLangSelect(); // update the selected language
   });
 
   const showLogo = document.getElementById("show-logo");
@@ -1375,12 +1376,12 @@ function initSettingsPanel() {
     settings.persistMoves = turningOn;
     saveSettings();
     if (turningOn && originalSnapshot) {
-      // Kalici mod acildi: bekleyen degisiklikleri sor
+      // Persistent mode turned on: ask about pending changes
       const diff = computeDiff();
       const total = diff.moves.length + diff.updates.length + diff.deletes.length;
       if (total > 0) promptApplyChanges(diff, total);
     } else if (!turningOn) {
-      // Kalici mod kapatildi: snapshot'i su ana sabitle ki biriktirme buradan bassin
+      // Persistent mode turned off: pin the snapshot to now so accumulation starts from here
       originalSnapshot = snapshotTree(localTree.folders, localTree.loose);
     }
   });
@@ -1398,7 +1399,7 @@ function initSettingsPanel() {
     settings.maxLinks = parseInt(maxLinks.value, 10) || 10;
     maxLinksValue.textContent = settings.maxLinks;
     saveSettings();
-    renderFolders(); // scroll/fade'i yeni sinira gore yeniden uygula
+    renderFolders(); // reapply scroll/fade based on the new limit
   });
 
   document.getElementById("reset-order").addEventListener("click", () => {
@@ -1427,7 +1428,7 @@ function renderHiddenList() {
   if (!box) return;
   box.innerHTML = "";
   if (!localTree.folders.length) {
-    box.innerHTML = '<p class="hint">Klasor bulunamadi.</p>';
+    box.innerHTML = `<p class="hint">${t("no_folders")}</p>`;
     return;
   }
   for (const f of localTree.folders) {
@@ -1451,7 +1452,7 @@ function renderHiddenList() {
   }
 }
 
-/* ================= YUKLE ================= */
+/* ================= LOAD ================= */
 function load() {
   chrome.bookmarks.getTree((tree) => {
     const root = tree[0];
@@ -1463,13 +1464,13 @@ function load() {
     }
     localTree.folders = folders;
     localTree.loose = looseLinks;
-    // Chrome'un orijinal halinin kopyasi (kalici mod acilinca fark hesaplamak icin)
+    // A copy of Chrome's original state (to compute the diff when persistent mode is turned on)
     originalSnapshot = snapshotTree(folders, looseLinks);
     renderAll();
   });
 }
 
-// localTree'yi karsilastirma icin sade bir yapiya donusturur (ic ice dahil)
+// Converts localTree into a flat structure for comparison (including nested)
 function snapshotTree(folders, loose) {
   const map = new Map(); // bookmarkId -> {title, url, parentId, index}
   const folderMeta = new Map(); // folderId -> {title}
@@ -1489,7 +1490,7 @@ function snapshotTree(folders, loose) {
   return { bookmarks: map, folders: folderMeta };
 }
 
-/* ================= ILK ACILIS KARSILAMASI ================= */
+/* ================= FIRST-LAUNCH WELCOME ================= */
 function maybeShowWelcome() {
   if (settings.welcomed) return;
   const overlay = document.getElementById("welcome-overlay");
@@ -1508,7 +1509,7 @@ function maybeShowWelcome() {
   });
 }
 
-// Karsilama kutusundaki madde metinlerini pre + <strong> + post olarak guvenli doldur
+// Safely fill the welcome box's list item texts as pre + <strong> + post
 function fillWelcomeText() {
   for (let i = 1; i <= 4; i++) {
     const li = document.getElementById("welcome-" + i);
@@ -1522,7 +1523,7 @@ function fillWelcomeText() {
   }
 }
 
-// Dili degistir ve tum gorunumu tazele
+// Change the language and refresh the whole view
 function changeLanguage(lang) {
   setLang(lang);
   settings.language = lang;
@@ -1534,7 +1535,7 @@ function changeLanguage(lang) {
   renderAll();
 }
 
-// Ayarlardaki dil menusunu doldur
+// Populate the language menu in settings
 function populateLangSelect() {
   const sel = document.getElementById("lang-select");
   if (!sel) return;
@@ -1548,10 +1549,10 @@ function populateLangSelect() {
   sel.value = currentLang;
 }
 
-/* ================= BASLAT ================= */
+/* ================= INIT ================= */
 async function init() {
   await loadSettings();
-  // Dil: kayitli tercih varsa onu, yoksa tarayici dilini kullan
+  // Language: use the saved preference if present, otherwise the browser language
   setLang(settings.language || detectLang());
   document.documentElement.lang = currentLang;
   applyDomTranslations();

@@ -19,6 +19,6 @@ node_modules/
 # Logs
 *.log
 
-# Chrome extension keys (ASLA commit etme)
+# Chrome extension keys (NEVER commit these)
 *.pem
 key.pem
