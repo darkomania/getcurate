@@ -217,10 +217,15 @@ function collectTopFolders(node, acc) {
 }
 
 /* ================= LINK ITEM ================= */
+const SAFE_URL_PROTOCOLS = new Set(["http:", "https:", "ftp:", "file:"]);
+function safeHref(url) {
+  try { return SAFE_URL_PROTOCOLS.has(new URL(url).protocol) ? url : "#"; }
+  catch { return "#"; }
+}
 function makeLink(node, folderId) {
   const a = document.createElement("a");
   a.className = "link";
-  a.href = node.url;
+  a.href = safeHref(node.url);
   a.title = node.title || node.url;
   a.dataset.id = node.id;
   a.dataset.folder = folderId || "loose";
