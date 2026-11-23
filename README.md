@@ -58,7 +58,6 @@ Bookmark changes are different: with **Permanent mode off**, moves/edits/deletes
 | `bookmarks` | Read your bookmark folders and (optionally) move bookmarks |
 | `favicon` | Show site icons next to each bookmark |
 | `storage` | Save your settings and layout locally |
-| `tabs` | Open bookmarks in new tabs/windows from the right-click menu |
 | `tabGroups` | Open a folder as a named, colored tab group |
 
 No data leaves your browser. There is no analytics, tracking, or external server.
@@ -129,7 +128,6 @@ Yer imi değişiklikleri farklıdır: **Kalıcı mod kapalıyken** taşıma/düz
 | `bookmarks` | Yer imi klasörlerinizi okumak ve (isteğe bağlı) yer imi taşımak |
 | `favicon` | Her yer iminin yanında site simgesini göstermek |
 | `storage` | Ayarlarınızı ve düzeninizi yerel olarak kaydetmek |
-| `tabs` | Sağ tık menüsünden yer imlerini yeni sekme/pencerede açmak |
 | `tabGroups` | Bir klasörü adlandırılmış, renkli bir sekme grubu olarak açmak |
 
 Hiçbir veri tarayıcınızdan çıkmaz. Analitik, takip veya harici sunucu yoktur.

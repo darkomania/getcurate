@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "2.1",
+  "version": "2.2",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
-  "permissions": ["bookmarks", "favicon", "storage", "tabs", "tabGroups"],
+  "permissions": ["bookmarks", "favicon", "storage", "tabGroups"],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
